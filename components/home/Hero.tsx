@@ -61,7 +61,7 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: scrub directo con scrub:2 para suavizar updates sin saturar el browser */
+      /* Desktop: scrub 1:1 con el scroll — scrub:true mapea el progreso directamente sin lag */
       mm.add("(min-width: 768px)", () => {
         section.style.height = "300vh";
         video.loop = false;
@@ -70,15 +70,18 @@ export default function Hero() {
         video.currentTime = 0;
 
         const initScrub = () => {
+          /* Usar video.duration real; caer a 6 solo si no está disponible */
+          const dur = video.duration > 0 && isFinite(video.duration) ? video.duration : 6;
+
           ScrollTrigger.create({
             trigger: section,
             start: "top top",
             end: "bottom bottom",
             pin: container,
             pinSpacing: true,
-            scrub: 2,
+            scrub: true,
             onUpdate: (self) => {
-              video.currentTime = self.progress * 6;
+              video.currentTime = self.progress * dur;
             },
           });
         };
