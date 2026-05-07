@@ -1,95 +1,84 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-import LocalSelector from "./LocalSelector";
 
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
-type SelectorMode = "reservar" | "menu" | null;
-
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="12"
-      height="8"
-      viewBox="0 0 12 8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`}
-    >
-      <path d="M1 1l5 5 5-5" />
-    </svg>
-  );
-}
+const links = {
+  reservar: {
+    villaCrespo:
+      "https://docs.google.com/forms/d/e/1FAIpQLSfiVb5_c3YN4K3WvEXG_l-15T2F1gYuKsscamyeUZaU2zrYEg/viewform",
+    belgrano:
+      "https://docs.google.com/forms/d/e/1FAIpQLSelZ91LU--Y-QugI5OJSvi6Fr0xkmyjIIni-_eix4gAiLsYuA/viewform",
+  },
+  menu: {
+    villaCrespo: "https://menu.fu.do/ayguacamole",
+    belgrano: "https://menu.fu.do/ayguacamoletexmex",
+  },
+};
 
 export default function Hero() {
   const sectionRef = useRef<HTMLElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const videoContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const titleRef = useRef<HTMLHeadingElement>(null);
-  const subtitleRef = useRef<HTMLParagraphElement>(null);
-  const ctasRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [selectorMode, setSelectorMode] = useState<SelectorMode>(null);
+  const [openSelector, setOpenSelector] = useState<"reservar" | "menu" | null>(null);
 
-  function toggle(mode: SelectorMode) {
-    setSelectorMode((prev) => (prev === mode ? null : mode));
-  }
+  /* Cerrar dropdown al hacer clic afuera */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setOpenSelector(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   useGSAP(
     () => {
       const video = videoRef.current;
       const section = sectionRef.current;
-      const container = containerRef.current;
+      const container = videoContainerRef.current;
       if (!video || !section || !container) return;
 
       const mm = gsap.matchMedia();
 
-      /* Mobile: autoplay en loop, sin scrub, sin 300vh */
+      /* Mobile: autoplay loop, sin scrub, sin 300vh */
       mm.add("(max-width: 767px)", () => {
         section.style.height = "100vh";
-        video.muted = true;
-        video.playsInline = true;
         video.loop = true;
-        video.autoplay = true;
-        video.load();
         video.play().catch(() => {
-          video.addEventListener("loadedmetadata", () => {
-            video.play().catch(() => {});
-          }, { once: true });
+          video.addEventListener("canplay", () => video.play(), { once: true });
         });
-        return () => { video.pause(); };
+        return () => video.pause();
       });
 
       /* Desktop: scrub limpio con ScrollTrigger */
       mm.add("(min-width: 768px)", () => {
         section.style.height = "300vh";
+        video.loop = false;
         video.pause();
         video.currentTime = 0;
-        video.loop = false;
-        video.autoplay = false;
 
         const initScrub = () => {
-          if (!video.duration || isNaN(video.duration)) return;
-
+          if (isNaN(video.duration)) return;
           ScrollTrigger.create({
             trigger: section,
             start: "top top",
             end: "bottom bottom",
             pin: container,
             pinSpacing: true,
-            scrub: 0.5,
+            scrub: 0.3,
             onUpdate: (self) => {
-              const time = self.progress * video.duration;
-              if (Math.abs(video.currentTime - time) > 0.01) {
-                video.currentTime = time;
-              }
+              video.currentTime = self.progress * video.duration;
             },
           });
         };
@@ -98,10 +87,11 @@ export default function Hero() {
           initScrub();
         } else {
           video.addEventListener("loadedmetadata", initScrub, { once: true });
-          video.load();
         }
 
-        return () => { ScrollTrigger.getAll().forEach((t) => t.kill()); };
+        return () => {
+          ScrollTrigger.getAll().forEach((t) => t.kill());
+        };
       });
 
       return () => mm.revert();
@@ -110,9 +100,10 @@ export default function Hero() {
   );
 
   return (
-    <section ref={sectionRef} className="relative h-screen">
+    <section ref={sectionRef} className="relative">
+      {/* Contenedor pinneado en desktop */}
       <div
-        ref={containerRef}
+        ref={videoContainerRef}
         className="relative w-full h-screen overflow-hidden"
       >
         {/* Video */}
@@ -122,81 +113,92 @@ export default function Hero() {
           muted
           playsInline
           preload="auto"
-          disablePictureInPicture
-          className="w-full h-full object-cover"
+          loop
+          className="absolute inset-0 w-full h-full object-cover"
           aria-hidden="true"
         />
 
         {/* Overlay */}
-        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+        <div className="absolute inset-0 bg-black/50 z-10" aria-hidden="true" />
 
         {/* Contenido */}
-        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center px-4 gap-6">
-          <h1
-            ref={titleRef}
-            className="font-lilita text-white uppercase leading-none text-6xl sm:text-8xl md:text-[120px] lg:text-[140px]"
-          >
-            Gastronomía
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-4 text-center gap-6">
+          <h1 className="font-lilita text-white text-5xl md:text-8xl uppercase leading-tight">
+            GASTRONOMÍA
             <br />
-            Mexicana
+            MEXICANA
           </h1>
 
-          <p
-            ref={subtitleRef}
-            className="font-nunito font-bold text-amarillo uppercase tracking-[0.3em] text-base sm:text-xl md:text-2xl"
-          >
-            Al mejor estilo Tex-Mex
+          <p className="font-nunito font-bold text-amarillo text-sm md:text-xl uppercase tracking-[0.2em]">
+            AL MEJOR ESTILO TEX-MEX
           </p>
 
-          {/* CTAs */}
-          <div ref={ctasRef} className="flex flex-row gap-3 justify-center items-center w-full px-4 mt-2">
-            {/* Reservar */}
-            <div className="relative">
-              <button
-                onClick={() => toggle("reservar")}
-                aria-expanded={selectorMode === "reservar"}
-                className="flex items-center gap-2 font-lilita uppercase text-sm md:text-base px-5 md:px-8 py-3 md:py-4 rounded-full whitespace-nowrap transition-colors"
-                style={{
-                  background: "#F5C800",
-                  color: "#0D0D0D",
-                }}
-              >
-                Reservar
-                <Chevron open={selectorMode === "reservar"} />
-              </button>
-              {selectorMode === "reservar" && (
-                <LocalSelector
-                  mode="reservar"
-                  onClose={() => setSelectorMode(null)}
-                />
-              )}
-            </div>
+          {/* Botones — siempre en fila */}
+          <div className="flex flex-row gap-3 items-center justify-center">
+            <button
+              onClick={() =>
+                setOpenSelector(openSelector === "reservar" ? null : "reservar")
+              }
+              aria-expanded={openSelector === "reservar"}
+              className="font-nunito font-bold text-negro bg-amarillo px-5 md:px-8 py-3 md:py-4 rounded-full text-sm md:text-base whitespace-nowrap flex items-center gap-2 hover:bg-yellow-400 transition-colors"
+            >
+              RESERVAR{" "}
+              <span aria-hidden="true">
+                {openSelector === "reservar" ? "▴" : "▾"}
+              </span>
+            </button>
 
-            {/* Ver menú y pedir */}
-            <div className="relative">
-              <button
-                onClick={() => toggle("menu")}
-                aria-expanded={selectorMode === "menu"}
-                className="flex items-center gap-2 font-lilita uppercase text-sm md:text-base px-5 md:px-8 py-3 md:py-4 rounded-full whitespace-nowrap transition-colors border-2 border-white text-white hover:bg-white hover:text-negro"
-              >
-                Ver menú y pedir
-                <Chevron open={selectorMode === "menu"} />
-              </button>
-              {selectorMode === "menu" && (
-                <LocalSelector
-                  mode="menu"
-                  onClose={() => setSelectorMode(null)}
-                />
-              )}
-            </div>
+            <button
+              onClick={() =>
+                setOpenSelector(openSelector === "menu" ? null : "menu")
+              }
+              aria-expanded={openSelector === "menu"}
+              className="font-nunito font-bold text-white border-2 border-white px-5 md:px-8 py-3 md:py-4 rounded-full text-sm md:text-base whitespace-nowrap flex items-center gap-2 hover:bg-white hover:text-negro transition-colors"
+            >
+              VER MENÚ Y PEDIR{" "}
+              <span aria-hidden="true">
+                {openSelector === "menu" ? "▴" : "▾"}
+              </span>
+            </button>
           </div>
 
-          {/* Indicador de scroll — solo desktop */}
-          <div className="hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-white/60">
-            <span className="font-nunito text-xs uppercase tracking-widest">
+          {/* Dropdown selector de local */}
+          {openSelector && (
+            <div
+              ref={dropdownRef}
+              className="absolute z-30 bg-negro border-2 border-verde rounded-xl min-w-[240px] shadow-[0_8px_32px_rgba(0,0,0,0.6)] overflow-hidden"
+              style={{ top: "calc(50% + 80px)" }}
+            >
+              <p className="px-5 pt-4 pb-2 font-nunito font-bold text-xs tracking-widest uppercase text-amarillo">
+                ¿EN QUÉ LOCAL?
+              </p>
+              <div className="border-t border-white/10" />
+              <a
+                href={links[openSelector].villaCrespo}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-4 font-lilita text-white text-xl hover:bg-verde transition-colors duration-150"
+              >
+                <span className="text-verde text-sm" aria-hidden="true">●</span> Villa Crespo
+              </a>
+              <div className="border-t border-white/10" />
+              <a
+                href={links[openSelector].belgrano}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-5 py-4 font-lilita text-white text-xl hover:bg-verde transition-colors duration-150 rounded-b-xl"
+              >
+                <span className="text-verde text-sm" aria-hidden="true">●</span> Belgrano
+              </a>
+            </div>
+          )}
+
+          {/* Indicador scroll — solo desktop */}
+          <div className="hidden md:flex flex-col items-center gap-2 absolute bottom-8">
+            <span className="font-nunito text-white/50 text-xs tracking-widest uppercase">
               Scrolleá
             </span>
-            <div className="w-px h-8 bg-white/40 animate-pulse" />
+            <div className="w-px h-12 bg-white/30" />
           </div>
         </div>
       </div>
