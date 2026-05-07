@@ -62,7 +62,18 @@ export default function Hero() {
       });
 
       /* Desktop: scrub original — pin + scrub:true mapea progreso a currentTime */
-      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
+      mm.add("(min-width: 768px)", () => {
+        const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        if (prefersReduced) {
+          /* Con reducción de movimiento: primer frame estático */
+          section.style.height = "100vh";
+          video.loop = false;
+          video.pause();
+          video.currentTime = 0;
+          return;
+        }
+
         section.style.height = "300vh";
         video.loop = false;
         video.pause();
@@ -83,16 +94,6 @@ export default function Hero() {
           ScrollTrigger.getAll().forEach((t) => t.kill());
         };
       });
-
-      /* Desktop con reducción de movimiento: primer frame estático */
-      mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
-        section.style.height = "100vh";
-        video.loop = false;
-        video.pause();
-        video.currentTime = 0;
-      });
-
-      return () => mm.revert();
     },
     { scope: sectionRef }
   );

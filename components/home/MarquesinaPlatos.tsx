@@ -3,8 +3,11 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
 import { PLATOS_IMAGES } from "@/lib/constants";
+
+gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 export default function MarquesinaPlatos() {
   const sectionRef = useRef<HTMLElement>(null);
