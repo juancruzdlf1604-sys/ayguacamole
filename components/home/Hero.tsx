@@ -61,38 +61,31 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: scrub con RAF para no saturar los seeks del video */
+      /* Desktop: GSAP anima currentTime como propiedad — patrón oficial para video scrub fluido */
       mm.add("(min-width: 768px)", () => {
         section.style.height = "300vh";
         video.loop = false;
         video.pause();
         video.currentTime = 0;
 
-        let targetTime = 0;
-        let rafId: number;
-
-        const updateFrame = () => {
-          if (Math.abs(video.currentTime - targetTime) > 0.001) {
-            video.currentTime = targetTime;
-          }
-          rafId = requestAnimationFrame(updateFrame);
-        };
-
         const initScrub = () => {
           if (isNaN(video.duration)) return;
 
-          rafId = requestAnimationFrame(updateFrame);
-
-          ScrollTrigger.create({
-            trigger: section,
-            start: "top top",
-            end: "bottom bottom",
-            pin: container,
-            pinSpacing: true,
-            scrub: 1,
-            onUpdate: (self) => {
-              targetTime = self.progress * video.duration;
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: "bottom bottom",
+              pin: container,
+              pinSpacing: true,
+              scrub: 1,
             },
+          });
+
+          tl.to(video, {
+            currentTime: video.duration,
+            ease: "none",
+            duration: video.duration,
           });
         };
 
@@ -103,7 +96,6 @@ export default function Hero() {
         }
 
         return () => {
-          cancelAnimationFrame(rafId);
           ScrollTrigger.getAll().forEach((t) => t.kill());
         };
       });
