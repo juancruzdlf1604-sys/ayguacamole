@@ -76,7 +76,7 @@ export default function MarquesinaPlatos() {
       </div>
 
       {/* Marquesina */}
-      <div className="relative">
+      <div className="relative overflow-hidden w-full">
         {/* Degradados en los extremos */}
         <div
           className="absolute left-0 top-0 bottom-0 w-24 z-10 pointer-events-none"

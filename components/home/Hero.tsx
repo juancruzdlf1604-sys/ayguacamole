@@ -45,52 +45,51 @@ export default function Hero() {
   useGSAP(
     () => {
       const video = videoRef.current;
-      if (!video) return;
+      const section = sectionRef.current;
+      const container = containerRef.current;
+      if (!video || !section || !container) return;
 
       const mm = gsap.matchMedia();
 
-      /* Animación de entrada del contenido — siempre, independiente del scrub */
-      mm.add("(prefers-reduced-motion: no-preference)", () => {
-        gsap.from(
-          [titleRef.current, subtitleRef.current, ctasRef.current],
-          {
-            opacity: 0,
-            y: 30,
-            duration: 1,
-            ease: "power2.out",
-            stagger: 0.2,
-            delay: 0.3,
-          }
-        );
-      });
-
-      /* Mobile: autoplay simple, sin scrub, sin 300vh extra */
+      /* Mobile: autoplay en loop, sin scrub, sin 300vh */
       mm.add("(max-width: 767px)", () => {
-        if (sectionRef.current) sectionRef.current.style.height = "100vh";
+        section.style.height = "100vh";
         video.muted = true;
         video.playsInline = true;
         video.loop = true;
+        video.autoplay = true;
         video.load();
-        video.addEventListener("loadedmetadata", () => { video.play().catch(() => {}); }, { once: true });
+        video.play().catch(() => {
+          video.addEventListener("loadedmetadata", () => {
+            video.play().catch(() => {});
+          }, { once: true });
+        });
+        return () => { video.pause(); };
       });
 
-      /* Desktop: scrub con ScrollTrigger y 300vh */
+      /* Desktop: scrub limpio con ScrollTrigger */
       mm.add("(min-width: 768px)", () => {
-        if (sectionRef.current) sectionRef.current.style.height = "300vh";
+        section.style.height = "300vh";
+        video.pause();
+        video.currentTime = 0;
+        video.loop = false;
+        video.autoplay = false;
 
         const initScrub = () => {
           if (!video.duration || isNaN(video.duration)) return;
-          video.pause();
-          video.currentTime = 0;
 
           ScrollTrigger.create({
-            trigger: sectionRef.current,
+            trigger: section,
             start: "top top",
             end: "bottom bottom",
-            pin: containerRef.current,
-            scrub: true,
+            pin: container,
+            pinSpacing: true,
+            scrub: 0.5,
             onUpdate: (self) => {
-              video.currentTime = self.progress * video.duration;
+              const time = self.progress * video.duration;
+              if (Math.abs(video.currentTime - time) > 0.01) {
+                video.currentTime = time;
+              }
             },
           });
         };
@@ -101,6 +100,8 @@ export default function Hero() {
           video.addEventListener("loadedmetadata", initScrub, { once: true });
           video.load();
         }
+
+        return () => { ScrollTrigger.getAll().forEach((t) => t.kill()); };
       });
 
       return () => mm.revert();
@@ -117,14 +118,13 @@ export default function Hero() {
         {/* Video */}
         <video
           ref={videoRef}
-          className="absolute inset-0 w-full h-full object-cover"
           src="/assets/hero/hero.mp4"
           muted
           playsInline
           preload="auto"
           disablePictureInPicture
+          className="w-full h-full object-cover"
           aria-hidden="true"
-          style={{ display: "block" }}
         />
 
         {/* Overlay */}

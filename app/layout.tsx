@@ -37,7 +37,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es-AR" className={`${lilitaOne.variable} ${nunito.variable}`}>
-      <body className="font-nunito">{children}</body>
+      <body className="font-nunito overflow-x-hidden">{children}</body>
     </html>
   );
 }
