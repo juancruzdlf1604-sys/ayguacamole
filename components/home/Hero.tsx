@@ -61,35 +61,29 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: GSAP anima currentTime como propiedad — patrón oficial para video scrub fluido */
+      /* Desktop: scrub directo con scrub:2 para suavizar updates sin saturar el browser */
       mm.add("(min-width: 768px)", () => {
         section.style.height = "300vh";
         video.loop = false;
+        video.autoplay = false;
         video.pause();
         video.currentTime = 0;
 
         const initScrub = () => {
-          if (isNaN(video.duration)) return;
-
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: section,
-              start: "top top",
-              end: "bottom bottom",
-              pin: container,
-              pinSpacing: true,
-              scrub: 1,
+          ScrollTrigger.create({
+            trigger: section,
+            start: "top top",
+            end: "bottom bottom",
+            pin: container,
+            pinSpacing: true,
+            scrub: 2,
+            onUpdate: (self) => {
+              video.currentTime = self.progress * 6;
             },
-          });
-
-          tl.to(video, {
-            currentTime: video.duration,
-            ease: "none",
-            duration: video.duration,
           });
         };
 
-        if (video.readyState >= 2) {
+        if (video.readyState >= 1) {
           initScrub();
         } else {
           video.addEventListener("loadedmetadata", initScrub, { once: true });
