@@ -36,8 +36,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es-AR" className={`${lilitaOne.variable} ${nunito.variable}`}>
-      <body className="font-nunito overflow-x-hidden">{children}</body>
+    <html lang="es-AR" className={`${lilitaOne.variable} ${nunito.variable}`} style={{ overflowX: "hidden" }}>
+      <body className="font-nunito overflow-x-hidden relative">{children}</body>
     </html>
   );
 }

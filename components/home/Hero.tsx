@@ -108,7 +108,7 @@ export default function Hero() {
   );
 
   return (
-    <section ref={sectionRef} className="relative">
+    <section ref={sectionRef} className="relative overflow-x-hidden w-full max-w-[100vw]">
       {/* Contenedor pinneado en desktop */}
       <div
         ref={videoContainerRef}
