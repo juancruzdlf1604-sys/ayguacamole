@@ -46,11 +46,10 @@ export default function Hero() {
     () => {
       const video = videoRef.current;
       if (!video) return;
-      video.pause();
-      video.currentTime = 0;
 
       const mm = gsap.matchMedia();
 
+      /* Animación de entrada del contenido — siempre, independiente del scrub */
       mm.add("(prefers-reduced-motion: no-preference)", () => {
         gsap.from(
           [titleRef.current, subtitleRef.current, ctasRef.current],
@@ -63,6 +62,13 @@ export default function Hero() {
             delay: 0.3,
           }
         );
+      });
+
+      const initScrollScrub = () => {
+        if (!video.duration || isNaN(video.duration)) return;
+
+        video.pause();
+        video.currentTime = 0;
 
         ScrollTrigger.create({
           trigger: sectionRef.current,
@@ -71,15 +77,29 @@ export default function Hero() {
           pin: containerRef.current,
           scrub: true,
           onUpdate: (self) => {
-            if (video.readyState >= 2) {
-              video.currentTime = self.progress * video.duration;
-            }
+            video.currentTime = self.progress * video.duration;
           },
         });
+      };
+
+      mm.add("(max-width: 767px)", () => {
+        /* Mobile: autoplay silencioso, sin scrub */
+        if (video.readyState >= 2) {
+          video.play();
+        } else {
+          video.addEventListener("loadedmetadata", () => { video.play(); }, { once: true });
+          video.load();
+        }
       });
 
-      mm.add("(prefers-reduced-motion: reduce)", () => {
-        if (video.readyState >= 2) video.currentTime = 0;
+      mm.add("(min-width: 768px)", () => {
+        /* Desktop: scrub con ScrollTrigger */
+        if (video.readyState >= 2) {
+          initScrollScrub();
+        } else {
+          video.addEventListener("loadedmetadata", initScrollScrub, { once: true });
+          video.load();
+        }
       });
     },
     { scope: sectionRef }
@@ -99,7 +119,9 @@ export default function Hero() {
           muted
           playsInline
           preload="auto"
+          disablePictureInPicture
           aria-hidden="true"
+          style={{ display: "block" }}
         />
 
         {/* Overlay */}
