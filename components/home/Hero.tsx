@@ -61,40 +61,35 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: scrub 1:1 con el scroll — scrub:true mapea el progreso directamente sin lag */
-      mm.add("(min-width: 768px)", () => {
+      /* Desktop: scrub original — pin + scrub:true mapea progreso a currentTime */
+      mm.add("(min-width: 768px) and (prefers-reduced-motion: no-preference)", () => {
         section.style.height = "300vh";
         video.loop = false;
-        video.autoplay = false;
         video.pause();
         video.currentTime = 0;
 
-        const initScrub = () => {
-          /* Usar video.duration real; caer a 6 solo si no está disponible */
-          const dur = video.duration > 0 && isFinite(video.duration) ? video.duration : 6;
-
-          ScrollTrigger.create({
-            trigger: section,
-            start: "top top",
-            end: "bottom bottom",
-            pin: container,
-            pinSpacing: true,
-            scrub: true,
-            onUpdate: (self) => {
-              video.currentTime = self.progress * dur;
-            },
-          });
-        };
-
-        if (video.readyState >= 1) {
-          initScrub();
-        } else {
-          video.addEventListener("loadedmetadata", initScrub, { once: true });
-        }
+        ScrollTrigger.create({
+          trigger: section,
+          start: "top top",
+          end: "bottom bottom",
+          pin: container,
+          scrub: true,
+          onUpdate: (self) => {
+            video.currentTime = self.progress * video.duration;
+          },
+        });
 
         return () => {
           ScrollTrigger.getAll().forEach((t) => t.kill());
         };
+      });
+
+      /* Desktop con reducción de movimiento: primer frame estático */
+      mm.add("(min-width: 768px) and (prefers-reduced-motion: reduce)", () => {
+        section.style.height = "100vh";
+        video.loop = false;
+        video.pause();
+        video.currentTime = 0;
       });
 
       return () => mm.revert();
