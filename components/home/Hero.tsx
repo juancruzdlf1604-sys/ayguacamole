@@ -61,34 +61,43 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: scrub original — pin + scrub:true mapea progreso a currentTime */
+      /* Desktop: esperar duration finito antes de inicializar el scrub */
       mm.add("(min-width: 768px)", () => {
-        const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-        if (prefersReduced) {
-          /* Con reducción de movimiento: primer frame estático */
-          section.style.height = "100vh";
-          video.loop = false;
-          video.pause();
-          video.currentTime = 0;
-          return;
-        }
-
         section.style.height = "300vh";
         video.loop = false;
+        video.autoplay = false;
         video.pause();
         video.currentTime = 0;
 
-        ScrollTrigger.create({
-          trigger: section,
-          start: "top top",
-          end: "bottom bottom",
-          pin: container,
-          scrub: true,
-          onUpdate: (self) => {
-            video.currentTime = self.progress * video.duration;
-          },
-        });
+        const initScrub = () => {
+          if (!video.duration || !isFinite(video.duration) || isNaN(video.duration)) {
+            setTimeout(initScrub, 100);
+            return;
+          }
+
+          const duration = video.duration;
+
+          ScrollTrigger.create({
+            trigger: section,
+            start: "top top",
+            end: "bottom bottom",
+            pin: container,
+            pinSpacing: true,
+            scrub: 2,
+            onUpdate: (self) => {
+              const time = self.progress * duration;
+              if (isFinite(time) && time >= 0 && time <= duration) {
+                video.currentTime = time;
+              }
+            },
+          });
+        };
+
+        video.addEventListener("loadedmetadata", () => {
+          setTimeout(initScrub, 50);
+        }, { once: true });
+
+        video.load();
 
         return () => {
           ScrollTrigger.getAll().forEach((t) => t.kill());
