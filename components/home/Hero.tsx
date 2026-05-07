@@ -61,24 +61,37 @@ export default function Hero() {
         return () => video.pause();
       });
 
-      /* Desktop: scrub limpio con ScrollTrigger */
+      /* Desktop: scrub con RAF para no saturar los seeks del video */
       mm.add("(min-width: 768px)", () => {
         section.style.height = "300vh";
         video.loop = false;
         video.pause();
         video.currentTime = 0;
 
+        let targetTime = 0;
+        let rafId: number;
+
+        const updateFrame = () => {
+          if (Math.abs(video.currentTime - targetTime) > 0.001) {
+            video.currentTime = targetTime;
+          }
+          rafId = requestAnimationFrame(updateFrame);
+        };
+
         const initScrub = () => {
           if (isNaN(video.duration)) return;
+
+          rafId = requestAnimationFrame(updateFrame);
+
           ScrollTrigger.create({
             trigger: section,
             start: "top top",
             end: "bottom bottom",
             pin: container,
             pinSpacing: true,
-            scrub: 0.3,
+            scrub: 1,
             onUpdate: (self) => {
-              video.currentTime = self.progress * video.duration;
+              targetTime = self.progress * video.duration;
             },
           });
         };
@@ -90,6 +103,7 @@ export default function Hero() {
         }
 
         return () => {
+          cancelAnimationFrame(rafId);
           ScrollTrigger.getAll().forEach((t) => t.kill());
         };
       });
@@ -105,6 +119,7 @@ export default function Hero() {
       <div
         ref={videoContainerRef}
         className="relative w-full h-screen overflow-hidden"
+        style={{ willChange: "transform", transform: "translateZ(0)" }}
       >
         {/* Video */}
         <video
@@ -115,6 +130,7 @@ export default function Hero() {
           preload="auto"
           loop
           className="absolute inset-0 w-full h-full object-cover"
+          style={{ willChange: "transform" }}
           aria-hidden="true"
         />
 

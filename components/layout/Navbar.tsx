@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import LocalSelector from "@/components/home/LocalSelector";
 
 const navLinks = [
   { label: "Villa Crespo", href: "/villa-crespo" },
@@ -12,43 +11,35 @@ const navLinks = [
   { label: "Contacto", href: "/contacto" },
 ];
 
-function Chevron({ open }: { open: boolean }) {
-  return (
-    <svg
-      width="10"
-      height="7"
-      viewBox="0 0 12 8"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      aria-hidden="true"
-      className={`transition-transform duration-200 shrink-0 ${open ? "rotate-180" : ""}`}
-    >
-      <path d="M1 1l5 5 5-5" />
-    </svg>
-  );
-}
+const navLinks_dropdown = {
+  reservar: {
+    villaCrespo:
+      "https://docs.google.com/forms/d/e/1FAIpQLSfiVb5_c3YN4K3WvEXG_l-15T2F1gYuKsscamyeUZaU2zrYEg/viewform",
+    belgrano:
+      "https://docs.google.com/forms/d/e/1FAIpQLSelZ91LU--Y-QugI5OJSvi6Fr0xkmyjIIni-_eix4gAiLsYuA/viewform",
+  },
+  menu: {
+    villaCrespo: "https://menu.fu.do/ayguacamole",
+    belgrano: "https://menu.fu.do/ayguacamoletexmex",
+  },
+};
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [reservarOpen, setReservarOpen] = useState(false);
-
-  /* Coords del dropdown desktop — calculadas desde getBoundingClientRect */
-  const [dropCoords, setDropCoords] = useState({ top: 0, left: 0 });
+  const [navSelector, setNavSelector] = useState<"reservar" | "menu" | null>(null);
 
   const drawerRef = useRef<HTMLDivElement>(null);
-  const reservarBtnRef = useRef<HTMLButtonElement>(null);
-  const mobileReservarBtnRef = useRef<HTMLButtonElement>(null);
+  const navDropdownRef = useRef<HTMLDivElement>(null);
 
+  /* Detectar scroll */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* Cerrar drawer al clickear afuera */
+  /* Cerrar drawer al hacer clic afuera */
   useEffect(() => {
     if (!menuOpen) return;
     const handler = (e: MouseEvent) => {
@@ -60,31 +51,27 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
 
-  function handleReservarDesktop() {
-    if (reservarBtnRef.current) {
-      const rect = reservarBtnRef.current.getBoundingClientRect();
-      setDropCoords({
-        top: rect.bottom + 8,
-        left: rect.left + rect.width / 2,
-      });
-    }
-    setReservarOpen((p) => !p);
+  /* Cerrar dropdown al hacer clic afuera */
+  useEffect(() => {
+    if (!navSelector) return;
+    const handler = (e: MouseEvent) => {
+      if (
+        navDropdownRef.current &&
+        !navDropdownRef.current.contains(e.target as Node)
+      ) {
+        setNavSelector(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [navSelector]);
+
+  function toggleNavSelector(mode: "reservar" | "menu") {
+    setNavSelector((prev) => (prev === mode ? null : mode));
   }
 
-  function handleReservarMobile() {
-    if (mobileReservarBtnRef.current) {
-      const rect = mobileReservarBtnRef.current.getBoundingClientRect();
-      setDropCoords({
-        /* En mobile aparece encima del botón */
-        top: rect.top - 8,
-        left: rect.left + rect.width / 2,
-      });
-    }
-    setReservarOpen((p) => !p);
-  }
-
-  function closeReservar() {
-    setReservarOpen(false);
+  function closeAll() {
+    setNavSelector(null);
     setMenuOpen(false);
   }
 
@@ -98,77 +85,108 @@ export default function Navbar() {
             : "bg-verde/80 backdrop-blur-sm py-4"
         }`}
       >
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between gap-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 shrink-0">
-            <Image
-              src="/assets/logo/logo.jpg"
-              alt="Ayguacamole - Gastronomía Mexicana"
-              width={44}
-              height={44}
-              className="rounded-full object-cover"
-              priority
-            />
-            <span className="font-lilita text-white text-lg uppercase tracking-wide hidden sm:block">
-              Ayguacamole
-            </span>
-          </Link>
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6">
 
-          {/* Links desktop */}
-          <ul className="hidden lg:flex items-center gap-6">
-            {navLinks.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  className="font-nunito font-semibold text-white/90 hover:text-amarillo transition-colors duration-200 text-xs uppercase tracking-wider whitespace-nowrap"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {/* Desktop — logo + links + CTA */}
+          <div className="hidden lg:flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-2 shrink-0">
+              <Image
+                src="/assets/logo/logo.jpg"
+                alt="Ayguacamole - Gastronomía Mexicana"
+                width={44}
+                height={44}
+                className="rounded-full object-cover"
+                priority
+              />
+              <span className="font-lilita text-white text-lg uppercase tracking-wide">
+                Ayguacamole
+              </span>
+            </Link>
 
-          {/* CTA Reservar desktop */}
-          <div className="flex items-center gap-3">
+            <ul className="flex items-center gap-6">
+              {navLinks.map((l) => (
+                <li key={l.href}>
+                  <Link
+                    href={l.href}
+                    className="font-nunito font-semibold text-white/90 hover:text-amarillo transition-colors duration-200 text-xs uppercase tracking-wider whitespace-nowrap"
+                  >
+                    {l.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
             <button
-              ref={reservarBtnRef}
-              onClick={handleReservarDesktop}
-              aria-expanded={reservarOpen}
-              className="hidden lg:inline-flex items-center gap-1.5 bg-amarillo text-negro font-nunito font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-yellow-400 transition-colors duration-200"
+              onClick={() => toggleNavSelector("reservar")}
+              aria-expanded={navSelector === "reservar"}
+              className="inline-flex items-center gap-1.5 bg-amarillo text-negro font-nunito font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-full hover:bg-yellow-400 transition-colors duration-200 shrink-0"
             >
               Reservar
-              <Chevron open={reservarOpen} />
+              <span aria-hidden="true">{navSelector === "reservar" ? "▴" : "▾"}</span>
             </button>
+          </div>
 
-            {/* Hamburger mobile */}
+          {/* Mobile — 3 columnas: logo | título | hamburger */}
+          <div className="flex lg:hidden items-center justify-between w-full">
+            <Link href="/" className="shrink-0">
+              <Image
+                src="/assets/logo/logo.jpg"
+                alt="Ayguacamole"
+                width={40}
+                height={40}
+                className="rounded-full object-cover"
+                priority
+              />
+            </Link>
+
+            <span className="font-lilita text-white text-lg uppercase tracking-wider">
+              Ayguacamole
+            </span>
+
             <button
               onClick={() => setMenuOpen(true)}
               aria-label="Abrir menú"
-              className="lg:hidden flex flex-col gap-1.5 p-2"
+              className="w-11 h-11 flex flex-col justify-center items-center gap-1.5"
             >
               <span className="block w-6 h-0.5 bg-white" />
               <span className="block w-6 h-0.5 bg-white" />
-              <span className="block w-4 h-0.5 bg-white" />
+              <span className="block w-6 h-0.5 bg-white" />
             </button>
           </div>
+
         </nav>
       </header>
 
-      {/* ── Dropdown desktop — fixed, FUERA del header para escapar su stacking context ── */}
-      {reservarOpen && (
+      {/* ── Dropdown — fixed, fuera del header para escapar su stacking context ── */}
+      {navSelector && (
         <div
-          className="fixed z-[9999]"
-          style={{
-            top: dropCoords.top,
-            left: dropCoords.left,
-            transform: "translateX(-50%)",
-          }}
+          ref={navDropdownRef}
+          className="fixed z-[9999] bg-negro border-2 border-verde rounded-xl min-w-[240px] shadow-[0_8px_32px_rgba(0,0,0,0.6)] overflow-hidden"
+          style={{ top: "70px", right: "16px" }}
         >
-          <LocalSelector
-            mode="reservar"
-            onClose={closeReservar}
-            wrapperClassName="min-w-[240px]"
-          />
+          <p className="px-5 pt-4 pb-2 font-nunito font-bold text-xs tracking-widest uppercase text-amarillo">
+            ¿EN QUÉ LOCAL?
+          </p>
+          <div className="border-t border-white/10" />
+          <a
+            href={navLinks_dropdown[navSelector].villaCrespo}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeAll}
+            className="flex items-center gap-3 px-5 py-4 font-lilita text-white text-xl hover:bg-verde transition-colors duration-150"
+          >
+            <span className="text-verde text-sm" aria-hidden="true">●</span> Villa Crespo
+          </a>
+          <div className="border-t border-white/10" />
+          <a
+            href={navLinks_dropdown[navSelector].belgrano}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={closeAll}
+            className="flex items-center gap-3 px-5 py-4 font-lilita text-white text-xl hover:bg-verde transition-colors duration-150 rounded-b-xl"
+          >
+            <span className="text-verde text-sm" aria-hidden="true">●</span> Belgrano
+          </a>
         </div>
       )}
 
@@ -211,36 +229,15 @@ export default function Navbar() {
           ))}
         </ul>
 
-        {/* Reservar mobile */}
         <button
-          ref={mobileReservarBtnRef}
-          onClick={handleReservarMobile}
-          aria-expanded={reservarOpen}
+          onClick={() => toggleNavSelector("reservar")}
+          aria-expanded={navSelector === "reservar"}
           className="mt-auto w-full flex items-center justify-center gap-2 bg-amarillo text-negro font-nunito font-bold text-sm uppercase tracking-wider px-6 py-3.5 rounded-full hover:bg-yellow-400 transition-colors"
         >
           Reservar mesa
-          <Chevron open={reservarOpen} />
+          <span aria-hidden="true">{navSelector === "reservar" ? "▴" : "▾"}</span>
         </button>
       </div>
-
-      {/* ── Dropdown mobile — fixed, FUERA del drawer ── */}
-      {reservarOpen && menuOpen && (
-        <div
-          className="fixed z-[9999]"
-          style={{
-            /* Aparece encima del botón mobile */
-            bottom: `calc(100vh - ${dropCoords.top}px)`,
-            left: dropCoords.left,
-            transform: "translateX(-50%)",
-          }}
-        >
-          <LocalSelector
-            mode="reservar"
-            onClose={closeReservar}
-            wrapperClassName="min-w-[240px]"
-          />
-        </div>
-      )}
     </>
   );
 }
