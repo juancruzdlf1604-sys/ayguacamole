@@ -64,49 +64,52 @@ export default function Hero() {
         );
       });
 
-      const initScrollScrub = () => {
-        if (!video.duration || isNaN(video.duration)) return;
-
-        video.pause();
-        video.currentTime = 0;
-
-        ScrollTrigger.create({
-          trigger: sectionRef.current,
-          start: "top top",
-          end: "bottom bottom",
-          pin: containerRef.current,
-          scrub: true,
-          onUpdate: (self) => {
-            video.currentTime = self.progress * video.duration;
-          },
-        });
-      };
-
+      /* Mobile: autoplay simple, sin scrub, sin 300vh extra */
       mm.add("(max-width: 767px)", () => {
-        /* Mobile: autoplay silencioso, sin scrub */
+        if (sectionRef.current) sectionRef.current.style.height = "100vh";
+        video.muted = true;
+        video.playsInline = true;
+        video.loop = true;
+        video.load();
+        video.addEventListener("loadedmetadata", () => { video.play().catch(() => {}); }, { once: true });
+      });
+
+      /* Desktop: scrub con ScrollTrigger y 300vh */
+      mm.add("(min-width: 768px)", () => {
+        if (sectionRef.current) sectionRef.current.style.height = "300vh";
+
+        const initScrub = () => {
+          if (!video.duration || isNaN(video.duration)) return;
+          video.pause();
+          video.currentTime = 0;
+
+          ScrollTrigger.create({
+            trigger: sectionRef.current,
+            start: "top top",
+            end: "bottom bottom",
+            pin: containerRef.current,
+            scrub: true,
+            onUpdate: (self) => {
+              video.currentTime = self.progress * video.duration;
+            },
+          });
+        };
+
         if (video.readyState >= 2) {
-          video.play();
+          initScrub();
         } else {
-          video.addEventListener("loadedmetadata", () => { video.play(); }, { once: true });
+          video.addEventListener("loadedmetadata", initScrub, { once: true });
           video.load();
         }
       });
 
-      mm.add("(min-width: 768px)", () => {
-        /* Desktop: scrub con ScrollTrigger */
-        if (video.readyState >= 2) {
-          initScrollScrub();
-        } else {
-          video.addEventListener("loadedmetadata", initScrollScrub, { once: true });
-          video.load();
-        }
-      });
+      return () => mm.revert();
     },
     { scope: sectionRef }
   );
 
   return (
-    <section ref={sectionRef} className="relative" style={{ height: "300vh" }}>
+    <section ref={sectionRef} className="relative h-screen">
       <div
         ref={containerRef}
         className="relative w-full h-screen overflow-hidden"
@@ -146,13 +149,13 @@ export default function Hero() {
           </p>
 
           {/* CTAs */}
-          <div ref={ctasRef} className="flex flex-col sm:flex-row gap-4 mt-2">
+          <div ref={ctasRef} className="flex flex-row gap-3 justify-center items-center w-full px-4 mt-2">
             {/* Reservar */}
             <div className="relative">
               <button
                 onClick={() => toggle("reservar")}
                 aria-expanded={selectorMode === "reservar"}
-                className="flex items-center gap-2 font-lilita uppercase px-8 py-4 rounded-full transition-colors"
+                className="flex items-center gap-2 font-lilita uppercase text-sm md:text-base px-5 md:px-8 py-3 md:py-4 rounded-full whitespace-nowrap transition-colors"
                 style={{
                   background: "#F5C800",
                   color: "#0D0D0D",
@@ -174,7 +177,7 @@ export default function Hero() {
               <button
                 onClick={() => toggle("menu")}
                 aria-expanded={selectorMode === "menu"}
-                className="flex items-center gap-2 font-lilita uppercase px-8 py-4 rounded-full transition-colors border-2 border-white text-white hover:bg-white hover:text-negro"
+                className="flex items-center gap-2 font-lilita uppercase text-sm md:text-base px-5 md:px-8 py-3 md:py-4 rounded-full whitespace-nowrap transition-colors border-2 border-white text-white hover:bg-white hover:text-negro"
               >
                 Ver menú y pedir
                 <Chevron open={selectorMode === "menu"} />
@@ -188,8 +191,8 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Indicador de scroll */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/60">
+          {/* Indicador de scroll — solo desktop */}
+          <div className="hidden md:flex absolute bottom-10 left-1/2 -translate-x-1/2 flex-col items-center gap-2 text-white/60">
             <span className="font-nunito text-xs uppercase tracking-widest">
               Scrolleá
             </span>
